@@ -1,7 +1,8 @@
+from typing import Dict
 from agent_framework import Executor, WorkflowContext, handler
 from agent_framework.openai import OpenAIChatClient
 
-from agentlist.messages import ResearchRequest, ResearchResultsResponse, RiskAssessmentRequest, StartTradingRequest
+from agentlist.messages import ResearchRequest, ResearchResultsResponse, RiskAssessmentRequest
 
 class Trader(Executor):
     """
@@ -11,14 +12,25 @@ class Trader(Executor):
     이를 리스크 매니저 팀에게 전달하여 리스크 평가를 받습니다.
     마지막으로 매니저가 현재 내가 가지고 있는 포트폴리오를 고려하여 최종 매수/매도 결정을 내리도록 합니다.
     """
-    def __init__(self, model: OpenAIChatClient):
+    def __init__(self, model: OpenAIChatClient, config: dict):
         super().__init__(id="Trader")
         self._model = model
+        self._config = config
+
+        self.stock_research_result: Dict[str, ResearchResultsResponse] = {}
 
     @handler
-    async def handle_start_trding(self, request: StartTradingRequest, ctx: WorkflowContext[ResearchRequest]) -> None:
-        await ctx.send_message(ResearchRequest())
+    async def handle_start_trading(self, request: str, ctx: WorkflowContext[ResearchRequest]) -> None:
+        for item in self._config["interested_stocks"]:
+            ticker = item["ticker"]
+            await ctx.send_message(ResearchRequest(stock_code=ticker, stock_name=item["name"]))
 
     @handler
     async def handle_research_results(self, request: ResearchResultsResponse, ctx: WorkflowContext[RiskAssessmentRequest]) -> None:
-        await ctx.send_message(RiskAssessmentRequest())
+        self.stock_research_result[request.stock_code] = request
+        for item in self._config["interested_stocks"]:
+            if item["ticker"] not in self.stock_research_result:
+                return
+            
+        research_results = list(self.stock_research_result.values())
+        await ctx.send_message(RiskAssessmentRequest(research_results = research_results))

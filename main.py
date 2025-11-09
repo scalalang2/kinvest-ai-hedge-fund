@@ -1,8 +1,8 @@
 import asyncio
+import json
 import logging
 import os
 
-from agentlist.messages import StartTradingRequest
 from agentlist.trader import Trader
 from agentlist.research import Researcher
 from agentlist.risk_manager_aggressive import RiskManagerAggressive
@@ -15,6 +15,7 @@ from agent_framework import (
     Workflow,
     WorkflowBuilder,
     WorkflowOutputEvent,
+    WorkflowEvent
 )
 from agent_framework.devui import serve
 from agent_framework.openai import OpenAIChatClient
@@ -32,10 +33,14 @@ def build_workflow():
         **({"base_url": os.getenv("OPENAI_BASE_URL")} if os.getenv("OPENAI_BASE_URL") else {}),
     }
 
+    config = {}
+    with open("config.json", "r", encoding="utf-8") as f:
+        config = json.load(f)
+
     chat_client = OpenAIChatClient(**args)
     kis = create_kis()
 
-    trader = Trader(model=chat_client)
+    trader = Trader(model=chat_client, config=config)
     researcher = Researcher(model=chat_client)
     risk_manager_aggressive = RiskManagerAggressive(model=chat_client)
     risk_manager_conservative = RiskManagerConservative(model=chat_client)
@@ -66,11 +71,10 @@ def run_with_devui(workflow: Workflow):
     serve(entities=entities, port=8090, auto_open=True)
 
 async def run(workflow: Workflow):
-    start_trading = StartTradingRequest(name="hello")
-
-    async for event in workflow.run_stream(start_trading):
+    async for event in workflow.run_stream("lets go"):
         print(event)
 
 if __name__ == "__main__":
     workflow = build_workflow()
     asyncio.run(run(workflow))
+    # run_with_devui(workflow)

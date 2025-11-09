@@ -34,7 +34,7 @@ def main():
 
     kis = create_kis()
     chart = kis.stock("000660").chart("5d", period=60)
-    print(chart)
+    print(chart.bars)
 
 if __name__ == "__main__":
     main()

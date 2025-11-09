@@ -1,0 +1,11 @@
+{
+    "interested_stocks": [
+        { "ticker": "005930", "name": "삼성전자" },
+        { "ticker": "000660", "name": "SK하이닉스" },
+        { "ticker": "035420", "name": "NAVER" },
+        { "ticker": "036570", "name": "엔씨소프트" },
+        { "ticker": "323410", "name": "카카오뱅크" },
+        { "ticker": "034020", "name": "두산에너빌리티" },
+        { "ticker": "103140", "name": "풍산" }
+    ]
+}
