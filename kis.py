@@ -1,6 +1,9 @@
+import math
+
 from pykis import PyKis
 from dotenv import load_dotenv
 
+import pandas as pd
 import os
 
 def create_kis():
@@ -33,8 +36,23 @@ def main():
     load_dotenv()
 
     kis = create_kis()
-    chart = kis.stock("000660").chart("5d", period=60)
-    print(chart.bars)
+    chart = kis.stock("000660").chart("1y", period="week")
+    bar_data = [
+        {
+            "시간": b.time_kst,
+            "시가": int(b.open),
+            "고가": int(b.high),
+            "저가": int(b.low),
+            "종가": int(b.close),
+            "거래량": int(b.volume),
+            "등략율": math.floor((b.change / b.prev_price) * 10000) / 100 if b.prev_price != 0 else 0,
+        }
+        for b in chart.bars
+    ]
+
+    df = pd.DataFrame(bar_data)
+    print(df.to_string())
+
 
 if __name__ == "__main__":
     main()

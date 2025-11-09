@@ -1,4 +1,5 @@
-import asyncio
+import math
+import pandas as pd
 from typing import Annotated, List
 
 from agent_framework import (
@@ -6,7 +7,7 @@ from agent_framework import (
     WorkflowContext,
     handler,
     ChatMessage,
-    WorkflowEvent,
+    WorkflowEvent, TextContent,
 )
 
 from agent_framework.openai import OpenAIChatClient
@@ -66,7 +67,7 @@ class Researcher(Executor):
         initial_prompt = f"""
             Start the debate for stock code: {request.stock_code}, stock name: {request.stock_name}. 
             Present your initial bullish case based on available data."""
-        conversation_history: List[ChatMessage] = [ChatMessage(role="user", text=initial_prompt)]
+        conversation_history: List[ChatMessage] = [ChatMessage(role="user", contents=[TextContent(text=initial_prompt)])]
         debate_history = []
 
         for round in range(num_round*2):
@@ -123,14 +124,14 @@ class Researcher(Executor):
     def _setup_agents(self):
         bullish_agent = self._model.create_agent(
             name="Bullish Analyst",
-            instructions=[BULLISH_PROMPT],
+            instructions=BULLISH_PROMPT,
             tools=[self.get_stock_chart],
             response_format=DebateResult,
         )
 
         bearish_agent = self._model.create_agent(
             name="Bearish Analyst",
-            instructions=[BEARISH_PROMPT],
+            instructions=BEARISH_PROMPT,
             tools=[self.get_stock_chart],
             response_format=DebateResult,
         )
@@ -145,6 +146,22 @@ class Researcher(Executor):
         stock_code: Annotated[str, "종목 코드"],
         range: Annotated[str, "조회 기간 범위 ('1d', '5d', '1m', '3m', '6m', '1y', '2y', '5y')"],
         period: Annotated[str, "조회 주기 (숫자]): 분단위, 'day', 'week', 'month', 'year' 등)"]):
+
         client = kis.create_kis()
         result = client.stock(stock_code).chart(range, period=period)
-        return result
+
+        bar_data = [
+            {
+                "시간": b.time_kst,
+                "시가": int(b.open),
+                "고가": int(b.high),
+                "저가": int(b.low),
+                "종가": int(b.close),
+                "거래량": int(b.volume),
+                "등략율": math.floor((b.change / b.prev_price) * 10000) / 100 if b.prev_price != 0 else 0,
+            }
+            for b in result.bars
+        ]
+
+        df = pd.DataFrame(bar_data)
+        return df.to_string()
