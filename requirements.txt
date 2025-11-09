@@ -1,3 +1,5 @@
 agent-framework
 langchain
 python-dotenv
+python-kis
+pykrx
